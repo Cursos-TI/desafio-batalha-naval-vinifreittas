@@ -1,71 +1,91 @@
 // ==================================================================
 // Desafio Batalha Naval - MateCheck
-// Versão 1.0 - nível novato
+// Versão 1.1 - Nível aventureiro
 // ==================================================================
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <locale.h>
+#include <stdbool.h>
 #include <time.h>
 
-// Codificação para o tipo de navio.
+// Constantes
+#define TAMANHO_TABULEIRO 10
+
+// Estilos de texto (ANSI)
+#define BG_AZUL "\033[44m"
+#define RESET "\033[0m"
+
+// Codificação para o estado de cada do tabuleiro.
 typedef enum {
-    tipo_null = 0,
-    tipo_navio,
-    tipo_submarino,
-    tipo_cruzador,
-    tipo_porta_avioes
-} tipoNavio;
+    AGUA = 0,
+    NAVIO,
+    SUBMARINO,
+    CRUZADOR,
+    PORTA_AVIOES
+} EstadoCasa;
 
-// Codificação para a direção do navio.
-typedef enum{
-    cima = 0,
-    baixo,
-    esquerda,
-    direita
-} tipoDirecao;
-
-// Estrutura do tabuleiro (uma matriz 10x10).
+// Estrutura do tabuleiro (uma matriz quadrada).
 typedef struct {
-    int casas[10][10];
+    EstadoCasa casas[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO];
 } Tabuleiro;
 
-// Base para construção do vetor de cada navio.
-tipoNavio listaNavios[] = { tipo_navio, tipo_submarino, tipo_cruzador, tipo_porta_avioes, tipo_null};
-int listaTamanho[] = { 1, 2, 3, 4 };
+// Estrutura de um navio (base para um vetor).
+typedef struct {
+    EstadoCasa tipo;
+    size_t tamanho;
+} Navio;
+
+// Definição da lista de navios.
+const Navio FROTA[] = { 
+    {NAVIO, 1}, 
+    {SUBMARINO, 2}, 
+    {CRUZADOR, 3}, 
+    {PORTA_AVIOES, 4}
+};
+
+// Vetores de deslocamento para cada direção.
+const int direcoes[8][2] = {
+    {-1, 0},  // NORTE
+    {+1, 0},  // SUL
+    {0, -1},  // LESTE
+    {0, +1},  // OESTE
+    {-1, -1}, // NORDESTE
+    {-1, +1}, // NOROESTE
+    {+1, -1}, // SUDESTE
+    {+1, +1}  // SUDOESTE
+};
 
 
 
 /* ========================== Utilitários ========================== */
 
 
-int verificar_validade_do_posicionamento(const Tabuleiro *matriz, int linha, int coluna, tipoDirecao direcao, int tamanho) {
-    int resultado = 1;
+void proxima_casa(const int direcao, int *x, int *y) {
+    *x += direcoes[direcao][0];
+    *y += direcoes[direcao][1];
+}
+
+bool verificar_validade_do_posicionamento(const Tabuleiro *matriz, const int linha, const int coluna, const intptr_t direcao, const size_t tamanho) {
+    int x = linha, y = coluna;
 
     // Verifica casa por casa que será ocupada.
-    for (int i = 0; i < tamanho; i++) {
+    for (size_t i = 0; i < tamanho; i++) {
 
         // Verifica se a casa ainda está dentro do tabuleiro.
-        if (linha > 9 || coluna > 9) { resultado = 0; break; }
-        if (linha < 0 || coluna < 0) { resultado = 0; break; }
+        if (x >= TAMANHO_TABULEIRO || y >= TAMANHO_TABULEIRO) return false;
+        if (x < 0 || y < 0) return false;
 
         // Verifica se a casa já está ocupada.
-        if (matriz->casas[linha][coluna]) { resultado = 0; break; }
+        if (matriz->casas[x][y]) return false;
 
-        // Modifica a posição de acordo com a direção.
-        switch (direcao) {
-            case cima: 
-                linha--; break;
-            case baixo: 
-                linha++; break;
-            case esquerda:
-                coluna--; break;
-            case direita: 
-                coluna++; break;
-        }
+        proxima_casa(direcao, &x, &y);
     }
+    return true;
+}
 
-    return resultado;
+void limpar_tela() {
+    printf("\033[H\033[J");
 }
 
 
@@ -75,47 +95,40 @@ int verificar_validade_do_posicionamento(const Tabuleiro *matriz, int linha, int
 
 void distribuir_navios(Tabuleiro *matriz) {
 
-    // Itera sobre listaNavios e listaTamanho, posicionando cada navio aleatoriamente na matriz do tabuleiro.
-    for (int i = 0, rodando = 1; rodando; i++) {
+    int num_navios = sizeof(FROTA) / sizeof(FROTA[0]);
+
+    // Itera sobre a frota, posicionando cada navio aleatoriamente na matriz do tabuleiro.
+    for (int i = 0; i < num_navios; i++) {
 
         // Busca as propriedades do navio.
-        tipoNavio navio = listaNavios[i];
-        if (navio == tipo_null) { rodando = 0; continue;} // Finaliza quando não tiver navio.
-        int tamanho = listaTamanho[i];
+        EstadoCasa navio = FROTA[i].tipo;
+        size_t tamanho = FROTA[i].tamanho;
 
         // Tenta aleatoriamente achar um posicionamento valido pro navio.
-        int linha, coluna;
-        tipoDirecao direcao;
+        int linha, coluna, direcao;
         do {
-            linha = rand() % 10;
-            coluna = rand() % 10;
-            direcao = rand() % 4;
+            linha = rand() % TAMANHO_TABULEIRO;
+            coluna = rand() % TAMANHO_TABULEIRO;
+            direcao = rand() % 8;
         } while (!verificar_validade_do_posicionamento(matriz, linha, coluna, direcao, tamanho));
         
         // Posiciona o navio
         int x = linha, y = coluna; 
-        for (int j = 0; j < tamanho; j++) {
+        for (size_t j = 0; j < tamanho; j++) {
             matriz->casas[x][y] = navio;
-
-            // Modifica a posição de acordo com a direção.
-            switch (direcao) {
-                case cima: 
-                    x--; break;
-                case baixo: 
-                    x++; break;
-                case esquerda:
-                    y--; break;
-                case direita: 
-                    y++; break;
-            }
+            proxima_casa(direcao, &x, &y);
         }  
     }
 }
 
-void imprimir_tabuleiro(Tabuleiro *matriz) {
-    for (int linha = 0; linha < 10; linha++) {
-        for (int coluna = 0; coluna < 10; coluna++) {
-            printf("  %i  ", matriz->casas[linha][coluna]);
+void imprimir_tabuleiro(const Tabuleiro *matriz) {
+    for (int linha = 0; linha < TAMANHO_TABULEIRO; linha++) {
+        for (int coluna = 0; coluna < TAMANHO_TABULEIRO; coluna++) {
+            if (matriz->casas[linha][coluna]) {
+                printf(" %i ", matriz->casas[linha][coluna]);
+            } else {
+                printf("%s ~ %s", BG_AZUL, RESET);
+            }
         }
         puts("");
     }
@@ -130,11 +143,11 @@ int main() {
     setlocale(LC_ALL, "pt_BR.UTF-8");
     srand(time(NULL));
 
-    // Inicializção da matriz do tabuleiro.
-    Tabuleiro matriz = {0};
+    Tabuleiro matriz = {AGUA}; // Inicialização do tabuleiro.
 
     distribuir_navios(&matriz);
 
+    limpar_tela();
     imprimir_tabuleiro(&matriz);
 
     return 0;
