@@ -1,40 +1,141 @@
-#include <stdio.h>
-
+// ==================================================================
 // Desafio Batalha Naval - MateCheck
-// Este código inicial serve como base para o desenvolvimento do sistema de Batalha Naval.
-// Siga os comentários para implementar cada parte do desafio.
+// Versão 1.0 - nível novato
+// ==================================================================
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <locale.h>
+#include <time.h>
+
+// Codificação para o tipo de navio.
+typedef enum {
+    tipo_null = 0,
+    tipo_navio,
+    tipo_submarino,
+    tipo_cruzador,
+    tipo_porta_avioes
+} tipoNavio;
+
+// Codificação para a direção do navio.
+typedef enum{
+    cima = 0,
+    baixo,
+    esquerda,
+    direita
+} tipoDirecao;
+
+// Estrutura do tabuleiro (uma matriz 10x10).
+typedef struct {
+    int casas[10][10];
+} Tabuleiro;
+
+// Base para construção do vetor de cada navio.
+tipoNavio listaNavios[] = { tipo_navio, tipo_submarino, tipo_cruzador, tipo_porta_avioes, tipo_null};
+int listaTamanho[] = { 1, 2, 3, 4 };
+
+
+
+/* ========================== Utilitários ========================== */
+
+
+int verificar_validade_do_posicionamento(const Tabuleiro *matriz, int linha, int coluna, tipoDirecao direcao, int tamanho) {
+    int resultado = 1;
+
+    // Verifica casa por casa que será ocupada.
+    for (int i = 0; i < tamanho; i++) {
+
+        // Verifica se a casa ainda está dentro do tabuleiro.
+        if (linha > 9 || coluna > 9) { resultado = 0; break; }
+        if (linha < 0 || coluna < 0) { resultado = 0; break; }
+
+        // Verifica se a casa já está ocupada.
+        if (matriz->casas[linha][coluna]) { resultado = 0; break; }
+
+        // Modifica a posição de acordo com a direção.
+        switch (direcao) {
+            case cima: 
+                linha--; break;
+            case baixo: 
+                linha++; break;
+            case esquerda:
+                coluna--; break;
+            case direita: 
+                coluna++; break;
+        }
+    }
+
+    return resultado;
+}
+
+
+
+/* ========================== Funcionalidades ========================== */
+
+
+void distribuir_navios(Tabuleiro *matriz) {
+
+    // Itera sobre listaNavios e listaTamanho, posicionando cada navio aleatoriamente na matriz do tabuleiro.
+    for (int i = 0, rodando = 1; rodando; i++) {
+
+        // Busca as propriedades do navio.
+        tipoNavio navio = listaNavios[i];
+        if (navio == tipo_null) { rodando = 0; continue;} // Finaliza quando não tiver navio.
+        int tamanho = listaTamanho[i];
+
+        // Tenta aleatoriamente achar um posicionamento valido pro navio.
+        int linha, coluna;
+        tipoDirecao direcao;
+        do {
+            linha = rand() % 10;
+            coluna = rand() % 10;
+            direcao = rand() % 4;
+        } while (!verificar_validade_do_posicionamento(matriz, linha, coluna, direcao, tamanho));
+        
+        // Posiciona o navio
+        int x = linha, y = coluna; 
+        for (int j = 0; j < tamanho; j++) {
+            matriz->casas[x][y] = navio;
+
+            // Modifica a posição de acordo com a direção.
+            switch (direcao) {
+                case cima: 
+                    x--; break;
+                case baixo: 
+                    x++; break;
+                case esquerda:
+                    y--; break;
+                case direita: 
+                    y++; break;
+            }
+        }  
+    }
+}
+
+void imprimir_tabuleiro(Tabuleiro *matriz) {
+    for (int linha = 0; linha < 10; linha++) {
+        for (int coluna = 0; coluna < 10; coluna++) {
+            printf("  %i  ", matriz->casas[linha][coluna]);
+        }
+        puts("");
+    }
+}
+
+
+
+/* ========================== Função principal ========================== */
+
 
 int main() {
-    // Nível Novato - Posicionamento dos Navios
-    // Sugestão: Declare uma matriz bidimensional para representar o tabuleiro (Ex: int tabuleiro[5][5];).
-    // Sugestão: Posicione dois navios no tabuleiro, um verticalmente e outro horizontalmente.
-    // Sugestão: Utilize `printf` para exibir as coordenadas de cada parte dos navios.
+    setlocale(LC_ALL, "pt_BR.UTF-8");
+    srand(time(NULL));
 
-    // Nível Aventureiro - Expansão do Tabuleiro e Posicionamento Diagonal
-    // Sugestão: Expanda o tabuleiro para uma matriz 10x10.
-    // Sugestão: Posicione quatro navios no tabuleiro, incluindo dois na diagonal.
-    // Sugestão: Exiba o tabuleiro completo no console, mostrando 0 para posições vazias e 3 para posições ocupadas.
+    // Inicializção da matriz do tabuleiro.
+    Tabuleiro matriz = {0};
 
-    // Nível Mestre - Habilidades Especiais com Matrizes
-    // Sugestão: Crie matrizes para representar habilidades especiais como cone, cruz, e octaedro.
-    // Sugestão: Utilize estruturas de repetição aninhadas para preencher as áreas afetadas por essas habilidades no tabuleiro.
-    // Sugestão: Exiba o tabuleiro com as áreas afetadas, utilizando 0 para áreas não afetadas e 1 para áreas atingidas.
+    distribuir_navios(&matriz);
 
-    // Exemplos de exibição das habilidades:
-    // Exemplo para habilidade em cone:
-    // 0 0 1 0 0
-    // 0 1 1 1 0
-    // 1 1 1 1 1
-    
-    // Exemplo para habilidade em octaedro:
-    // 0 0 1 0 0
-    // 0 1 1 1 0
-    // 0 0 1 0 0
-
-    // Exemplo para habilidade em cruz:
-    // 0 0 1 0 0
-    // 1 1 1 1 1
-    // 0 0 1 0 0
+    imprimir_tabuleiro(&matriz);
 
     return 0;
 }
